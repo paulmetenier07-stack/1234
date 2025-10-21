@@ -11,6 +11,7 @@ import time
 # ==============================================================================
 
 TARGET_URL = "https://music.travisscott.com"
+# On garde le sélecteur qui échoue pour l'enquête
 SELECTOR = '[id^="shopify-section-template--"]'
 HISTORY_FILE = "last_content.txt" # Fichier de sauvegarde
 
@@ -18,7 +19,6 @@ HISTORY_FILE = "last_content.txt" # Fichier de sauvegarde
 try:
     SENDER_EMAIL = "paulodi337@gmail.com"
     RECEIVER_EMAIL = "paulodi337@gmail.com"
-    # Ceci lit le "Secret" GMAIL_APP_PASSWORD que vous avez créé à l'étape 2
     GMAIL_APP_PASSWORD = os.environ['GMAIL_APP_PASSWORD']
 except KeyError:
     print("ERREUR: GMAIL_APP_PASSWORD non trouvé dans les secrets GitHub.")
@@ -35,7 +35,7 @@ def send_notification(new_content):
     msg['From'] = SENDER_EMAIL
     msg['To'] = RECEIVER_EMAIL
     msg['Subject'] = f"[ALERTE BOT] NOUVEAU PRODUIT DÉTECTÉ sur {TARGET_URL}"
-
+    
     old_content = load_previous_content()
     body = f"""
     Bonjour,
@@ -87,12 +87,20 @@ def check_for_changes():
 
     soup = BeautifulSoup(response.text, 'html.parser')
     target_element = soup.select_one(SELECTOR)
+
+    # ==========================================================
+    # VOICI LE BLOC CORRIGÉ (AVEC LA BONNE INDENTATION)
+    # ==========================================================
     if not target_element:
-    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] !!! FATAL : Sélecteur '{SELECTOR}' non trouvé.")
-    print("================= DÉBUT DE LA PAGE REÇUE PAR LE BOT =================")
-    print(response.text) # Imprime le HTML de la page
-    print("================== FIN DE LA PAGE REÇUE PAR LE BOT ==================")
-    return
+        # Tout ce bloc est maintenant décalé (indenté)
+        print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] !!! FATAL : Sélecteur '{SELECTOR}' non trouvé.")
+        print("================= DÉBUT DE LA PAGE REÇUE PAR LE BOT =================")
+        print(response.text) # Imprime le HTML de la page
+        print("================== FIN DE LA PAGE REÇUE PAR LE BOT ==================")
+        return
+    # ==========================================================
+    # FIN DU BLOC CORRIGÉ
+    # ==========================================================
 
     current_content = target_element.prettify()
     previous_content = load_previous_content()
