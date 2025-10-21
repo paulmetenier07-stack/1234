@@ -1,0 +1,49 @@
+name: Bot de Surveillance Travis
+
+on:
+  workflow_dispatch: # Permet de le lancer manuellement
+  schedule:
+    # Exécute le script toutes les 5 minutes
+    - cron: '*/5 * * * *'
+
+jobs:
+  monitor-site:
+    runs-on: ubuntu-latest
+    steps:
+      # 1. Récupère votre code (les 3 fichiers)
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # 2. Met en place Python
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      # 3. Installe les outils (requests, beautifulsoup4)
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # 4. Exécute votre script
+      - name: Run Python script
+        env:
+          # Passe le secret (mot de passe) au script
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+        run: |
+          python monitor_bot.py
+
+      # 5. Sauvegarde les changements s'il y en a eu
+      - name: Commit and push if content changed
+        run: |
+          if [ -f "changes_detected.flag" ]; then
+            echo "Changement détecté, sauvegarde de last_content.txt..."
+            git config --global user.name 'github-actions-bot'
+            git config --global user.email 'github-actions-bot@users.noreply.github.com'
+            git add last_content.txt
+            git commit -m "Mise à jour automatique du contenu de la boutique"
+            git push
+          else
+            echo "Aucun changement détecté, pas de commit."
+          fi
