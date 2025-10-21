@@ -11,8 +11,8 @@ import time
 # ==============================================================================
 
 TARGET_URL = "https://music.travisscott.com"
-# LE NOUVEAU SÉLECTEUR CORRECT :
-SELECTOR = '[id^="shopify-section-section_collection_"]' 
+GRID_SELECTOR = '[id^="shopify-section-section_collection_"]'
+PRODUCT_TITLE_SELECTOR = "h3.PGI__title a.js-product-title"
 HISTORY_FILE = "last_content.txt" # Fichier de sauvegarde
 
 # Récupération sécurisée des secrets
@@ -21,14 +21,14 @@ try:
     RECEIVER_EMAIL = "paulodi337@gmail.com"
     GMAIL_APP_PASSWORD = os.environ['GMAIL_APP_PASSWORD']
 except KeyError:
-    print("ERREUR: GMAIL_APP_PASSWORD non trouvé dans les secrets GitHub.")
+    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] ERREUR: GMAIL_APP_PASSWORD non trouvé dans les secrets GitHub.")
     exit(1)
 
 # ==============================================================================
 #                 FONCTIONS DU BOT (Ne pas modifier)
 # ==============================================================================
 
-def send_notification(new_content):
+def send_notification(new_content_list):
     """Envoie une notification par email."""
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] >>> Envoi de la notification par email...")
     msg = MIMEMultipart()
@@ -36,12 +36,19 @@ def send_notification(new_content):
     msg['To'] = RECEIVER_EMAIL
     msg['Subject'] = f"[ALERTE BOT] NOUVEAU PRODUIT DÉTECTÉ sur {TARGET_URL}"
     
-    old_content = load_previous_content()
+    old_content_list = load_previous_content()
+    
     body = f"""
     Bonjour,
 
-    Le bot de surveillance a détecté un NOUVEAU CONTENU sur la page : {TARGET_URL}
-    Cela signifie probablement qu'un nouveau produit a été ajouté !
+    Le bot de surveillance a détecté un changement dans la liste des produits sur : {TARGET_URL}
+
+    ANCIENNE LISTE DE PRODUITS:
+    {old_content_list}
+
+    ---
+    NOUVELLE LISTE DE PRODUITS:
+    {new_content_list}
 
     Vérifiez le site immédiatement !
     """
@@ -70,7 +77,6 @@ def save_new_content(content):
     print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] >>> Sauvegarde du nouveau contenu dans {HISTORY_FILE}...")
     with open(HISTORY_FILE, 'w', encoding='utf-8') as f:
         f.write(content)
-    # Crée un fichier "flag" pour dire au planificateur de sauvegarder
     with open("changes_detected.flag", "w") as f:
         f.write("1")
 
@@ -86,27 +92,39 @@ def check_for_changes():
         return
 
     soup = BeautifulSoup(response.text, 'html.parser')
-    target_element = soup.select_one(SELECTOR)
-
-    # Version propre du bloc d'erreur (sans l'enquête)
-    if not target_element:
-        print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] !!! FATAL : Sélecteur '{SELECTOR}' non trouvé. Le site a peut-être changé.")
+    
+    product_grid = soup.select_one(GRID_SELECTOR)
+    
+    if not product_grid:
+        print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] !!! FATAL : Sélecteur de GRILLE '{GRID_SELECTOR}' non trouvé.")
         return
 
-    current_content = target_element.prettify()
+    product_titles = product_grid.select(PRODUCT_TITLE_SELECTOR)
+    
+    if not product_titles:
+        print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] !!! FATAL : Grille trouvée, mais SÉLECTEUR DE TITRES '{PRODUCT_TITLE_SELECTOR}' n'a rien trouvé.")
+        return
+
+    current_product_list = []
+    for title_tag in product_titles:
+        current_product_list.append(title_tag.get_text(strip=True))
+    
+    # ==========================================================
+    # VOICI LA CORRECTION MAGIQUE
+    # ==========================================================
+    current_product_list.sort() # Trie la liste par ordre alphabétique
+    # ==========================================================
+    
+    current_content = "\n".join(current_product_list)
     previous_content = load_previous_content()
 
     if current_content != previous_content:
-        # C'est ce qui va se passer maintenant, car "init" est différent du vrai site
-        if previous_content == "N/A (Première exécution)" or previous_content == "init": 
-            print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] >>> Première exécution. Contenu initial enregistré.")
-            send_notification(current_content) # Envoie un email à la première exécution !
-        else:
-            print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] >>> CHANGEMENT DÉTECTÉ ! Envoi de l'alerte.")
-            send_notification(current_content)
+        # Si l'ancien contenu n'est pas trié, il sera différent
+        print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] >>> Changement détecté (ou première exécution / tri). Enregistrement de la nouvelle base triée.")
+        send_notification(current_content) # Envoie un email à la première exécution !
         save_new_content(current_content)
     else:
-        print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] >>> Aucun changement détecté.")
+        print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] >>> Aucun changement détecté. (Liste des produits triée identique)")
 
 if __name__ == "__main__":
     check_for_changes()
