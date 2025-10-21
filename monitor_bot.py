@@ -88,8 +88,11 @@ def check_for_changes():
     soup = BeautifulSoup(response.text, 'html.parser')
     target_element = soup.select_one(SELECTOR)
     if not target_element:
-        print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] !!! FATAL : Sélecteur '{SELECTOR}' non trouvé.")
-        return
+    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] !!! FATAL : Sélecteur '{SELECTOR}' non trouvé.")
+    print("================= DÉBUT DE LA PAGE REÇUE PAR LE BOT =================")
+    print(response.text) # Imprime le HTML de la page
+    print("================== FIN DE LA PAGE REÇUE PAR LE BOT ==================")
+    return
 
     current_content = target_element.prettify()
     previous_content = load_previous_content()
