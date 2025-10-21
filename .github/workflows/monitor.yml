@@ -38,12 +38,24 @@ jobs:
       - name: Commit and push if content changed
         run: |
           if [ -f "changes_detected.flag" ]; then
-            echo "Changement détecté, sauvegarde de last_content.txt..."
+            echo "Changement détecté, préparation de la sauvegarde..."
             git config --global user.name 'github-actions-bot'
             git config --global user.email 'github-actions-bot@users.noreply.github.com'
+            
+            # Ajoute le fichier de contenu principal
             git add last_content.txt
-            git commit -m "Mise à jour automatique du contenu de la boutique"
-            git push
+            
+            # Enlève le fichier drapeau, on n'en a plus besoin
+            rm changes_detected.flag
+            
+            # Vérifie si git a VRAIMENT vu un changement dans le fichier
+            if ! git diff --staged --quiet; then
+              echo "Git a détecté des changements, commit en cours..."
+              git commit -m "Mise à jour automatique du contenu de la boutique"
+              git push
+            else
+              echo "Git n'a détecté aucun changement de contenu (probablement identique à la sauvegarde précédente), pas de commit."
+            fi
           else
             echo "Aucun changement détecté, pas de commit."
           fi
