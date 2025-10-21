@@ -9,6 +9,11 @@ on:
 jobs:
   monitor-site:
     runs-on: ubuntu-latest
+    
+    # ÉTAPE TRÈS IMPORTANTE : DONNER LES PERMISSIONS
+    permissions:
+      contents: write # Autorise le bot à écrire dans le projet
+
     steps:
       # 1. Récupère votre code (les 3 fichiers)
       - name: Checkout code
@@ -29,7 +34,6 @@ jobs:
       # 4. Exécute votre script
       - name: Run Python script
         env:
-          # Passe le secret (mot de passe) au script
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
         run: |
           python monitor_bot.py
@@ -37,25 +41,25 @@ jobs:
       # 5. Sauvegarde les changements s'il y en a eu
       - name: Commit and push if content changed
         run: |
+          # Ne s'exécute que si le script python a créé le fichier "flag"
           if [ -f "changes_detected.flag" ]; then
             echo "Changement détecté, préparation de la sauvegarde..."
+            
+            # Configuration de l'utilisateur "bot"
             git config --global user.name 'github-actions-bot'
             git config --global user.email 'github-actions-bot@users.noreply.github.com'
             
-            # Ajoute le fichier de contenu principal
+            # Ajoute TOUS les changements (le .txt et supprime le .flag)
             git add last_content.txt
+            git rm changes_detected.flag
             
-            # Enlève le fichier drapeau, on n'en a plus besoin
-            rm changes_detected.flag
+            # Sauvegarde (Commit)
+            git commit -m "Mise à jour automatique du contenu de la boutique"
             
-            # Vérifie si git a VRAIMENT vu un changement dans le fichier
-            if ! git diff --staged --quiet; then
-              echo "Git a détecté des changements, commit en cours..."
-              git commit -m "Mise à jour automatique du contenu de la boutique"
-              git push
-            else
-              echo "Git n'a détecté aucun changement de contenu (probablement identique à la sauvegarde précédente), pas de commit."
-            fi
+            # Pousse vers GitHub
+            git push
+            
+            echo "Sauvegarde terminée."
           else
-            echo "Aucun changement détecté, pas de commit."
+            echo "Aucun changement détecté, pas de sauvegarde."
           fi
