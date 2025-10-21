@@ -11,8 +11,8 @@ import time
 # ==============================================================================
 
 TARGET_URL = "https://music.travisscott.com"
-# On garde le sélecteur qui échoue pour l'enquête
-SELECTOR = '[id^="shopify-section-template--"]'
+# LE NOUVEAU SÉLECTEUR CORRECT :
+SELECTOR = '[id^="shopify-section-section_collection_"]' 
 HISTORY_FILE = "last_content.txt" # Fichier de sauvegarde
 
 # Récupération sécurisée des secrets
@@ -88,26 +88,19 @@ def check_for_changes():
     soup = BeautifulSoup(response.text, 'html.parser')
     target_element = soup.select_one(SELECTOR)
 
-    # ==========================================================
-    # VOICI LE BLOC CORRIGÉ (AVEC LA BONNE INDENTATION)
-    # ==========================================================
+    # Version propre du bloc d'erreur (sans l'enquête)
     if not target_element:
-        # Tout ce bloc est maintenant décalé (indenté)
-        print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] !!! FATAL : Sélecteur '{SELECTOR}' non trouvé.")
-        print("================= DÉBUT DE LA PAGE REÇUE PAR LE BOT =================")
-        print(response.text) # Imprime le HTML de la page
-        print("================== FIN DE LA PAGE REÇUE PAR LE BOT ==================")
+        print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] !!! FATAL : Sélecteur '{SELECTOR}' non trouvé. Le site a peut-être changé.")
         return
-    # ==========================================================
-    # FIN DU BLOC CORRIGÉ
-    # ==========================================================
 
     current_content = target_element.prettify()
     previous_content = load_previous_content()
 
     if current_content != previous_content:
-        if previous_content == "N/A (Première exécution)": 
+        # C'est ce qui va se passer maintenant, car "init" est différent du vrai site
+        if previous_content == "N/A (Première exécution)" or previous_content == "init": 
             print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] >>> Première exécution. Contenu initial enregistré.")
+            send_notification(current_content) # Envoie un email à la première exécution !
         else:
             print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] >>> CHANGEMENT DÉTECTÉ ! Envoi de l'alerte.")
             send_notification(current_content)
