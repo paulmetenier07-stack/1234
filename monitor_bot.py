@@ -11,7 +11,7 @@ import time
 # ==============================================================================
 
 TARGET_URL = "https://music.travisscott.com"
-SELECTOR = "#shopify-section-collection-template" 
+SELECTOR = '[id^="shopify-section-template--"]'
 HISTORY_FILE = "last_content.txt" # Fichier de sauvegarde
 
 # Récupération sécurisée des secrets
