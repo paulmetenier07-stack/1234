@@ -3,12 +3,12 @@ name: Bot de Surveillance Travis
 on:
   workflow_dispatch: # Permet de le lancer manuellement
   schedule:
-    # Exécute les scripts toutes les 5 minutes
+    # Exécute le script toutes les 5 minutes
     - cron: '*/5 * * * *'
 
 jobs:
   # ===========================================================
-  # TÂCHE N°1 : SURVEILLER LA BOUTIQUE (MUSIC.TRAVISSCOTT.COM)
+  # TÂCHE UNIQUE : SURVEILLER LA BOUTIQUE
   # ===========================================================
   monitor-shop:
     runs-on: ubuntu-latest
@@ -42,53 +42,9 @@ jobs:
             git config --global user.name 'github-actions-bot'
             git config --global user.email 'github-actions-bot@users.noreply.github.com'
             git add last_content.txt
-            # CORRECTION : Utiliser "rm" (supprimer) au lieu de "git rm"
             rm changes_detected.flag
             git commit -m "Mise à jour automatique du contenu de la boutique"
             git push
           else
             echo "Aucun changement boutique, pas de sauvegarde."
-          fi
-
-  # ===========================================================
-  # TÂCHE N°2 : SURVEILLER LA PAGE D'ACCUEIL (WWW.TRAVISSCOTT.COM)
-  # ===========================================================
-  monitor-homepage:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write # Autorise à écrire
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-      - name: Run Homepage script (monitor_homepage.py)
-        env:
-          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
-        run: |
-          python monitor_homepage.py
-
-      - name: Commit Homepage changes
-        run: |
-          if [ -f "homepage_changes.flag" ]; then
-            echo "Changement homepage détecté, sauvegarde..."
-            git config --global user.name 'github-actions-bot'
-            git config --global user.email 'github-actions-bot@users.noreply.github.com'
-            git add last_homepage_content.txt
-            # CORRECTION : Utiliser "rm" (supprimer) au lieu de "git rm"
-            rm homepage_changes.flag
-            git commit -m "Mise à jour automatique du contenu de la homepage"
-            git push
-          else
-            echo "Aucun changement homepage, pas de sauvegarde."
           fi
