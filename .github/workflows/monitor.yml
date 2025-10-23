@@ -3,63 +3,90 @@ name: Bot de Surveillance Travis
 on:
   workflow_dispatch: # Permet de le lancer manuellement
   schedule:
-    # Exécute le script toutes les 5 minutes
+    # Exécute les scripts toutes les 5 minutes
     - cron: '*/5 * * * *'
 
 jobs:
-  monitor-site:
+  # ===========================================================
+  # TÂCHE N°1 : SURVEILLER LA BOUTIQUE (MUSIC.TRAVISSCOTT.COM)
+  # ===========================================================
+  monitor-shop:
     runs-on: ubuntu-latest
-    
-    # ÉTAPE TRÈS IMPORTANTE : DONNER LES PERMISSIONS
     permissions:
-      contents: write # Autorise le bot à écrire dans le projet
+      contents: write # Autorise à écrire
 
     steps:
-      # 1. Récupère votre code (les 3 fichiers)
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # 2. Met en place Python
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.10'
 
-      # 3. Installe les outils (requests, beautifulsoup4)
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      # 4. Exécute votre script
-      - name: Run Python script
+      - name: Run Shop script (monitor_bot.py)
         env:
           GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
         run: |
           python monitor_bot.py
 
-      # 5. Sauvegarde les changements s'il y en a eu
-      - name: Commit and push if content changed
+      - name: Commit Shop changes
         run: |
-          # Ne s'exécute que si le script python a créé le fichier "flag"
           if [ -f "changes_detected.flag" ]; then
-            echo "Changement détecté, préparation de la sauvegarde..."
-            
-            # Configuration de l'utilisateur "bot"
+            echo "Changement boutique détecté, sauvegarde..."
             git config --global user.name 'github-actions-bot'
             git config --global user.email 'github-actions-bot@users.noreply.github.com'
-            
-            # Ajoute TOUS les changements (le .txt et supprime le .flag)
             git add last_content.txt
             git rm changes_detected.flag
-            
-            # Sauvegarde (Commit)
             git commit -m "Mise à jour automatique du contenu de la boutique"
-            
-            # Pousse vers GitHub
             git push
-            
-            echo "Sauvegarde terminée."
           else
-            echo "Aucun changement détecté, pas de sauvegarde."
+            echo "Aucun changement boutique, pas de sauvegarde."
+          fi
+
+  # ===========================================================
+  # TÂCHE N°2 : SURVEILLER LA PAGE D'ACCUEIL (WWW.TRAVISSCOTT.COM)
+  # ===========================================================
+  monitor-homepage:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Autorise à écrire
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Homepage script (monitor_homepage.py)
+        env:
+          GMAIL_APP_PASSWORD: ${{ secrets.GMAIL_APP_PASSWORD }}
+        run: |
+          python monitor_homepage.py
+
+      - name: Commit Homepage changes
+        run: |
+          if [ -f "homepage_changes.flag" ]; then
+            echo "Changement homepage détecté, sauvegarde..."
+            git config --global user.name 'github-actions-bot'
+            git config --global user.email 'github-actions-bot@users.noreply.github.com'
+            git add last_homepage_content.txt
+            git rm homepage_changes.flag
+            git commit -m "Mise à jour automatique du contenu de la homepage"
+            git push
+          else
+            echo "Aucun changement homepage, pas de sauvegarde."
           fi
